@@ -29,6 +29,8 @@ scale		rs.l	1			; Scale value
 vsyncFlag	rs.b	1			; VSync flag
 bufferID	rs.b	1			; Buffer ID
 
+vdpReg1		rs.w	1			; VDP register 1 cache
+
 ; -------------------------------------------------------------------------
 ; Main program
 ; -------------------------------------------------------------------------
@@ -41,6 +43,8 @@ Main:
 	move.w	#$8238,(a0)			; Plane A = $E000
 	move.w	#$8B00,(a0)			; Scroll by screen
 	move.w	#$8C00,(a0)			; H32 mode
+	move.w	#$8114,vdpReg1			; Disable V-INT and screen
+	move.w	vdpReg1,(a0)
 
 	move.l	#$40000010,(a0)			; Scroll down
 	move.l	#$00080008,-4(a0)
@@ -76,12 +80,21 @@ Main:
 
 .Loop:
 	move	#$2000,sr			; Enable interrupts
-	move.w	#$8174,VDPCTRL			; Enable V-INT
+	move.w	vdpReg1,d0			; Enable V-INT
+	ori.b	#$20,d0
+	move.w	d0,vdpReg1
+	move.w	d0,VDPCTRL
 	st	vsyncFlag			; Set VSync flag
 
 .VSync:
 	tst.b	vsyncFlag			; Are we synchronized?
 	bne.s	.VSync				; If not, wait
+
+	move.w	vdpReg1,d0			; Enable V-INT
+	ori.b	#$40,d0
+	move.w	d0,vdpReg1
+	move.w	d0,VDPCTRL
+
 	subi.l	#$800,scale			; Scale up
 
 .StartRender:
@@ -290,7 +303,9 @@ VInt:
 	move.w	(a0),d0				; Reset V-INT occurance flag
 	clr.b	vsyncFlag			; Clear VSync flag
 
-	move.w	#$8154,(a0)			; Disable V-INT
+	move.w	vdpReg1,d0			; Disable V-INT
+	andi.b	#~$20,d0
+	move.w	d0,(a0)
 	move.w	#$8F04,(a0)			; Set VDP auto increment to 4 (skip every other word)
 
 	bchg	#0,bufferID			; Swap buffers
