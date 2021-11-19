@@ -159,7 +159,7 @@ Z80REQ macros
 Z80WAIT macro
 .Wait\@:
 	btst	#0,Z80BUS			; Was the request acknowledged?
-	bne.s	.Wait\@-8			; If not, wait
+	bne.s	.Wait\@				; If not, wait
 	endm
 
 ; -------------------------------------------------------------------------
